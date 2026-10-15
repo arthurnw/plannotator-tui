@@ -49,9 +49,10 @@ plannotator-tui docs               # a folder: file tree on the left, counts per
 plannotator-tui last               # your coding agent's recent replies, pick one, annotate it
 ```
 
-Drag with the mouse (or `v` and move) to select, then `a` 👍 · `c` 💬 · `d` ✗. `E` copies the
-feedback to the clipboard as numbered annotations (`# Annotations on plan.md`, `## Annotation 1
-(line 12)`, …). Every annotation is saved as JSON the moment you make it; `q` closes.
+Drag with the mouse (or `v`, move, then `Enter`) to select, then `a` 👍 · `c` 💬 · `d` ✗. `E`
+copies the feedback to the clipboard as numbered annotations (`# Annotations on plan.md`,
+`## Annotation 1 (line 12)`, …). Every annotation is saved as JSON the moment you make it; `q`
+closes.
 
 Copies go to the clipboard as OSC 52, which is the terminal you are looking at, so on Herdr 0.9.0
 they reach your own machine even when the app runs on a remote server; Herdr Annotate's global
@@ -82,7 +83,7 @@ dimmed. The keys also work without opening the menu.
 |---|---|
 | anywhere | `Tab` cycle tree · document · notes; `E` send; `t` tree; `r` reload; `q` quit |
 | reply review | `S` send and close |
-| document | `j`/`k` block; `c` comment on the block; `x` clear its annotations; `v` select with `hjkl` `w` `b` `0` `$`; `i` move the cursor with those keys first, then `v` to select from there |
+| document | `j`/`k` block; `c` comment on the block; `x` clear its annotations; `v` select with `hjkl` `w` `b` `0` `$`, `Enter` to finish; `i` move the cursor with those keys first, then `v` to select from there |
 | toolbar | `a` looks good · `c` comment · `d` delete · `Esc` |
 | notes | `j`/`k`; `e` edit; `x` remove; click a bubble |
 | file/folder review | `E` send new · `m` review menu (`R` resend all · `F` finish review · `U` undo · `H` archive) |
