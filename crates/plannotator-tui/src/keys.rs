@@ -37,6 +37,7 @@ pub(crate) enum Action {
     ToggleTree,
     Reload,
     PickMessage,
+    QuickOpen,
     ReviewMenu,
     ResendAll,
     FinishReview,
@@ -57,8 +58,8 @@ pub(crate) enum Action {
 
 use Action::{
     Archive, Back, Bottom, ClearBlock, Comment, Confirm, CycleFocus, Delete, Down, Edit, FinishReview,
-    Interrupt, Left, LineEnd, LineStart, LooksGood, MoveCursor, No, PageDown, PageUp, PickMessage, Quit,
-    Reload, Remove, ResendAll, ReviewMenu, Right, Send, SendAndClose, ToggleHidden, ToggleTree, Top,
+    Interrupt, Left, LineEnd, LineStart, LooksGood, MoveCursor, No, PageDown, PageUp, PickMessage, QuickOpen,
+    Quit, Reload, Remove, ResendAll, ReviewMenu, Right, Send, SendAndClose, ToggleHidden, ToggleTree, Top,
     UndoFinish, Up, Visual, WordBack, WordForward, Yes,
 };
 
@@ -76,6 +77,7 @@ pub(crate) const GLOBAL: &[Action] = &[
     Archive,
     ToggleTree,
     Reload,
+    QuickOpen,
     PickMessage,
 ];
 pub(crate) const TREE: &[Action] = &[Down, Up, Confirm, Right, ToggleHidden, Back];
@@ -232,6 +234,7 @@ const DEFAULTS: &[(Action, &[Key])] = &[
     (ToggleTree, &[ch('t')]),
     (Reload, &[ch('r')]),
     (PickMessage, &[ch('p')]),
+    (QuickOpen, &[ctrl('p')]),
     (ReviewMenu, &[ch('m')]),
     (ResendAll, &[ch('R')]),
     (FinishReview, &[ch('F')]),
@@ -359,6 +362,7 @@ impl Action {
             Self::ToggleTree => "toggle-tree",
             Self::Reload => "reload",
             Self::PickMessage => "pick-message",
+            Self::QuickOpen => "quick-open",
             Self::ReviewMenu => "review-menu",
             Self::ResendAll => "resend-all",
             Self::FinishReview => "finish-review",

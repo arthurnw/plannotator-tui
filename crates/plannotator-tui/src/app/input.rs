@@ -19,6 +19,10 @@ impl App {
                 Mode::Browse => self.browse_key(*key),
                 Mode::ConfirmQuit => self.confirm_quit_key(*key),
                 Mode::Pick => self.pick_key(*key),
+                Mode::FileSearch => {
+                    self.file_search_key(*key);
+                    Ok(())
+                }
                 Mode::Archive => {
                     self.archive_key(*key);
                     Ok(())
@@ -32,8 +36,17 @@ impl App {
                 self.compose.insert_text(text);
                 Ok(())
             }
+            // In Quick Open a paste joins the query, newlines dropped.
+            Event::Paste(text) if self.mode == Mode::FileSearch => {
+                self.file_search_paste(text);
+                Ok(())
+            }
             Event::Mouse(mouse) if self.mode == Mode::Browse => self.mouse(*mouse),
             Event::Mouse(mouse) if self.mode == Mode::Pick => self.pick_mouse(*mouse),
+            Event::Mouse(mouse) if self.mode == Mode::FileSearch => {
+                self.file_search_mouse(*mouse);
+                Ok(())
+            }
             Event::Mouse(mouse) if self.mode == Mode::ReviewMenu => self.menu_mouse(*mouse),
             Event::Mouse(mouse) if self.mode == Mode::Archive => {
                 self.archive_mouse(*mouse);
@@ -45,7 +58,18 @@ impl App {
 
     fn browse_key(&mut self, key: KeyEvent) -> Result<()> {
         // Global keys first.
-        match self.keys.action(&key, keys::GLOBAL) {
+        let action = match self.keys.action(&key, keys::GLOBAL) {
+            // Quick Open needs the file tree. Without one its key means what it did before
+            // `quick-open` existed: ctrl+p is `p`, which picks another reply.
+            Some(Action::QuickOpen) if self.tree.is_none() => {
+                let others: Vec<Action> =
+                    keys::GLOBAL.iter().copied().filter(|&action| action != Action::QuickOpen).collect();
+                self.keys.action(&key, &others)
+            }
+            action => action,
+        };
+        match action {
+            Some(Action::QuickOpen) => return self.start_file_search(),
             Some(Action::Quit | Action::Interrupt) => {
                 self.request_quit();
                 return Ok(());
@@ -360,6 +384,7 @@ impl App {
                     | Mode::Browse
                     | Mode::ConfirmQuit
                     | Mode::Pick
+                    | Mode::FileSearch
                     | Mode::Archive
                     | Mode::ReviewMenu => {
                         if !body.is_empty()

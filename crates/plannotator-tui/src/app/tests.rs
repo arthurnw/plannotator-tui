@@ -771,3 +771,12 @@ fn a_ctrl_binding_beats_the_plain_key_it_shares_a_letter_with() {
     app.handle_event(&Event::Key(KeyEvent::new(KeyCode::Char('k'), KeyModifiers::CONTROL))).expect("key");
     assert_eq!(app.selected, 1, "ctrl+k goes to the last block instead of up");
 }
+
+/// Without a file tree `quick-open` has nothing to search, so ctrl+p keeps meaning `p`.
+#[test]
+fn ctrl_p_in_a_reply_review_still_picks_another_reply() {
+    let mut app = message_app(None, Box::new(Discard));
+    app.handle_event(&Event::Key(KeyEvent::from(KeyCode::Esc))).expect("esc");
+    app.handle_event(&Event::Key(KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL))).expect("ctrl+p");
+    assert_eq!(app.mode, Mode::Pick);
+}
