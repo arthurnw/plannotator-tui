@@ -8,14 +8,16 @@ use std::sync::OnceLock;
 use anyhow::Result;
 use plannotator_tui_hosts::Message;
 use ratatui::Frame;
-use ratatui::crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKind};
+use ratatui::crossterm::event::{KeyEvent, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph};
 use unicode_width::UnicodeWidthStr as _;
 
+use super::draw::picker_help;
 use super::{App, Mode, Open};
+use crate::keys::{self, Action};
 use crate::last::message_source;
 use crate::theme::palette;
 
@@ -98,22 +100,22 @@ impl App {
 
     pub(super) fn pick_key(&mut self, key: KeyEvent) -> Result<()> {
         let last = self.candidates.len().saturating_sub(1);
-        match key.code {
-            KeyCode::Char('j') | KeyCode::Down => {
+        match self.keys.action(&key, keys::PICK) {
+            Some(Action::Down) => {
                 self.pick_cursor = (self.pick_cursor + 1).min(last);
                 return self.show_candidate(self.pick_cursor);
             }
-            KeyCode::Char('k') | KeyCode::Up => {
+            Some(Action::Up) => {
                 self.pick_cursor = self.pick_cursor.saturating_sub(1);
                 return self.show_candidate(self.pick_cursor);
             }
-            KeyCode::Enter => return self.open_candidate(self.pick_cursor),
-            KeyCode::Esc => {
+            Some(Action::Confirm) => return self.open_candidate(self.pick_cursor),
+            Some(Action::Back) => {
                 self.show_candidate(self.pick_return)?;
                 self.pick_cursor = self.pick_return;
                 self.mode = Mode::Browse;
             }
-            KeyCode::Char('q') => self.quit = true,
+            Some(Action::Quit) => self.quit = true,
             _ => {}
         }
         Ok(())
@@ -146,7 +148,14 @@ impl App {
             .border_style(Style::new().fg(Color::Cyan))
             .title(Span::styled(" which message? ", Style::new().dim()))
             .title_bottom(Span::styled(
-                " ↑↓ preview · enter open · esc cancel · q quit ",
+                picker_help(
+                    "preview",
+                    [
+                        self.keys.labelled(Action::Confirm, "open"),
+                        self.keys.labelled(Action::Back, "cancel"),
+                        self.keys.labelled(Action::Quit, "quit"),
+                    ],
+                ),
                 Style::new().dim(),
             ));
         let inner = boxed.inner(rect);

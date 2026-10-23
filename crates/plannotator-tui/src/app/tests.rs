@@ -736,3 +736,38 @@ fn a_reply_already_sent_is_not_sent_again_from_another_reply() {
     assert!(calls[1].contains("on the middle"), "{}", calls[1]);
     assert!(!calls[1].contains("on the newest"), "the newest reply was sent already: {}", calls[1]);
 }
+
+/// `[keys]` drives the app and its hints: the rebound key moves, the key it replaced does not.
+#[test]
+fn rebound_movement_keys_move_and_the_footer_names_them() {
+    let mut app = app(Box::new(Discard));
+    app.keys =
+        toml::from_str("left = [\"j\"]\ndown = [\"k\"]\nup = [\"l\"]\nright = [\";\"]\n").expect("keys");
+    keys(&mut app, &[KeyCode::Char('j')]);
+    assert_eq!(app.selected, 0, "j is left now, and a column move starts the cursor");
+    keys(&mut app, &[KeyCode::Esc, KeyCode::Char('k')]);
+    assert_eq!(app.selected, 1);
+    app.roam = true;
+    let footer = draw(&mut app).pop().expect("footer");
+    assert!(footer.contains("jkl; move"), "{footer:?}");
+}
+
+/// An unbound action leaves no bare label behind in the footer.
+#[test]
+fn an_unbound_action_drops_out_of_the_footer() {
+    let mut app = app(Box::new(Discard));
+    app.keys = toml::from_str("quit = []\n").expect("keys");
+    let footer = draw(&mut app).pop().expect("footer");
+    assert!(footer.contains("S send+quit "), "{footer:?}");
+    assert!(!footer.contains("quit · ") && !footer.contains(" · quit"), "{footer:?}");
+}
+
+/// A ctrl binding whose letter is also a plain binding earlier in the context still runs.
+#[test]
+fn a_ctrl_binding_beats_the_plain_key_it_shares_a_letter_with() {
+    let mut app = app(Box::new(Discard));
+    // `up` comes before `bottom` in the document, and its plain `k` matches ctrl+k too.
+    app.keys = toml::from_str("bottom = [\"ctrl+k\"]\n").expect("keys");
+    app.handle_event(&Event::Key(KeyEvent::new(KeyCode::Char('k'), KeyModifiers::CONTROL))).expect("key");
+    assert_eq!(app.selected, 1, "ctrl+k goes to the last block instead of up");
+}
