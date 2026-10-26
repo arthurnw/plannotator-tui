@@ -18,7 +18,7 @@ use ratatui::crossterm::execute;
 
 use crate::app::App;
 use crate::config::Config;
-use crate::delivery::{Clipboard, Delivery, Discard, HerdrAgent};
+use crate::delivery::{Clipboard, DeliverCommand, Delivery, Discard, HerdrAgent};
 use crate::doc::Document;
 use crate::herdr::context::HerdrEnv;
 use crate::layout::DocLayout;
@@ -51,13 +51,21 @@ fn open_file(path: &PathBuf) -> Result<DocumentSource> {
 }
 
 /// A file opens on its own; a folder opens in folder mode on its first markdown file.
-/// Interactive runs send to the Herdr agent pane named by the environment, else the
-/// clipboard; headless runs send nowhere.
+/// Interactive runs send to `PLANNOTATOR_TUI_DELIVER_COMMAND` when it is set, else the Herdr
+/// agent pane named by the environment, else the clipboard; headless runs send nowhere.
 pub(crate) fn delivery(interactive: bool) -> Box<dyn Delivery> {
+    delivery_from(interactive, &|k| std::env::var(k).ok())
+}
+
+/// `delivery` over an injected environment, so the precedence can be tested.
+pub(crate) fn delivery_from(interactive: bool, env: &dyn Fn(&str) -> Option<String>) -> Box<dyn Delivery> {
     if !interactive {
         return Box::new(Discard);
     }
-    let env = HerdrEnv::from_env();
+    if let Some(command) = DeliverCommand::from_lookup(env) {
+        return Box::new(command);
+    }
+    let env = HerdrEnv::from_lookup(env);
     match env.delivery_target() {
         Some(target) if env.in_herdr => {
             let agent = target.agent.or_else(|| env.agent_in_pane(&target.pane));

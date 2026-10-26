@@ -2,12 +2,17 @@
 //!
 //! The app renders feedback with one function regardless of target; only the target
 //! varies. Clipboard is the standalone default. Inside Herdr the target is an agent's pane
-//! and the transport is `herdr agent prompt`. Nothing else in the app knows which is in use;
-//! it only distinguishes the three outcomes below.
+//! and the transport is `herdr agent prompt`. Elsewhere a deliver command can stand in for
+//! it (`command`). Nothing else in the app knows which is in use; it only distinguishes the
+//! three outcomes below.
 
 use std::io::Write as _;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+
+mod command;
+
+pub(crate) use command::DeliverCommand;
 
 /// Why a send did not land. The app reacts differently to each.
 #[derive(Debug)]
@@ -206,6 +211,26 @@ mod tests {
             plannotator_tui_schema::DocumentSource::file(PathBuf::from("doc.md"), "# hi\n".to_owned());
         let app = crate::app::App::open(source, 80, crate::cli::delivery(false)).expect("open");
         assert!(!app.clipboard);
+    }
+
+    fn env(pairs: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> {
+        let pairs: Vec<(String, String)> =
+            pairs.iter().map(|(k, v)| ((*k).to_owned(), (*v).to_owned())).collect();
+        move |key| pairs.iter().find(|(k, _)| k == key).map(|(_, v)| v.clone())
+    }
+
+    const HERDR: [(&str, &str); 3] = [
+        ("HERDR_ENV", "1"),
+        ("PLANNOTATOR_TUI_DELIVER_TO", "w1:p1"),
+        ("PLANNOTATOR_TUI_DELIVER_AGENT", "claude"),
+    ];
+
+    #[test]
+    fn a_deliver_command_wins_over_herdr_and_the_clipboard() {
+        let with_command = [&HERDR[..], &[("PLANNOTATOR_TUI_DELIVER_COMMAND", "cat")]].concat();
+        assert_eq!(crate::cli::delivery_from(true, &env(&with_command)).describe(), "claude");
+        assert_eq!(crate::cli::delivery_from(true, &env(&HERDR)).describe(), "claude in w1:p1");
+        assert_eq!(crate::cli::delivery_from(true, &env(&[])).describe(), Clipboard.describe());
     }
 
     #[test]

@@ -110,6 +110,32 @@ part of the review and are sent whether or not its folder is listed.
 name are told apart, and opening one expands the tree down to it. It follows the tree's
 hidden-entries setting and skips the same folders the tree does.
 
+## Sending from other terminals
+
+Outside Herdr, `E` copies the feedback. Set `PLANNOTATOR_TUI_DELIVER_COMMAND` to send it to
+an agent instead: the command runs through `sh -c` (`cmd /C` on Windows) with the feedback
+on stdin, and `PLANNOTATOR_TUI_DELIVER_AGENT` names the agent on the send button. The
+command decides how the text reaches the agent. For example, with the agent in tmux pane
+`%3`:
+
+```sh
+PLANNOTATOR_TUI_DELIVER_AGENT=claude \
+PLANNOTATOR_TUI_DELIVER_COMMAND='tmux load-buffer -b review - && tmux paste-buffer -p -d -b review -t %3 && tmux send-keys -t %3 Enter' \
+  plannotator-tui docs/plan.md
+```
+
+Its exit status is the outcome, the same ones Herdr reports:
+
+| Exit | Meaning | The app |
+|---|---|---|
+| `0` | delivered | marks the notes sent |
+| `75` | the agent is at a dialog | keeps the notes pending, copies the feedback, offers a retry |
+| `69` | no agent to send to | keeps the notes pending and copies the feedback |
+| other | failed | keeps the notes pending and shows the command's stderr |
+
+When the variable is set it wins over Herdr's pane delivery. The app waits for the command to
+exit, so it should hand the text off and return rather than wait on the agent.
+
 ## Inside Herdr
 
 Install [Herdr Annotate](https://github.com/plannotator/herdr-annotate); it bundles this binary,
